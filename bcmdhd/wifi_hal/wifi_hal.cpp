@@ -541,10 +541,13 @@ void wifi_cleanup(wifi_handle handle, wifi_cleaned_up_handler handler)
     if (wlan0Handle != NULL) {
         ALOGE("Calling hal cleanup");
         if (!get_halutil_mode()) {
+            wifi_cleanup_dynamic_ifaces(handle);
+            ALOGI("Cleaned dynamic virtual ifaces\n");
             result = wifi_stop_hal(wlan0Handle);
             if (result != WIFI_SUCCESS) {
                 ALOGE("wifi_stop_hal failed");
             }
+            ALOGI("wifi_stop_hal success");
         }
 
 #ifdef FILE_DUMP
@@ -626,9 +629,6 @@ void wifi_cleanup(wifi_handle handle, wifi_cleaned_up_handler handler)
         }
         WifiCommand *cmd = (WifiCommand *)cbi->cb_arg;
         ALOGE("Leaked command %p", cmd);
-    }
-    if (!get_halutil_mode()) {
-        wifi_cleanup_dynamic_ifaces(handle);
     }
     pthread_mutex_unlock(&info->cb_lock);
     internal_cleaned_up_handler(handle);
@@ -1851,7 +1851,7 @@ public:
     }
 
     int createIface() {
-        ALOGE("Creating virtual interface");
+        ALOGD("Creating virtual interface");
         WifiRequest request(familyId(), ifaceId());
         int result = createRequest(request, mIfname, mType, mwlan0_id);
         if (result != WIFI_SUCCESS) {
@@ -1864,7 +1864,7 @@ public:
             ALOGE("failed to get the virtual iface create response; result = %d\n", result);
             return result;
         }
-        ALOGE("Created virtual interface");
+        ALOGD("Created virtual interface");
         return WIFI_SUCCESS;
     }
 
@@ -1882,6 +1882,7 @@ public:
             ALOGE("failed to get response of delete virtual interface; result = %d\n", result);
             return result;
         }
+        ALOGD("Deleted virtual interface");
         return WIFI_SUCCESS;
     }
 protected:
@@ -1897,8 +1898,11 @@ static std::vector<std::string> added_ifaces;
 static void wifi_cleanup_dynamic_ifaces(wifi_handle handle)
 {
     int len = added_ifaces.size();
+    ALOGI("%s: virtual iface size %d\n", __FUNCTION__, len);
     while (len--) {
         wifi_virtual_interface_delete(handle, added_ifaces.front().c_str());
+        ALOGI("%s: deleted virtual iface %s\n",
+            __FUNCTION__, added_ifaces.front().c_str());
     }
     added_ifaces.clear();
 }
